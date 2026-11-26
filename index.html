@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#04110b"><title>Merry Christmas 🎄</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:radial-gradient(ellipse at 50% 42%,#123b27 0%,#071b12 43%,#020805 100%);font-family:Georgia,'Times New Roman',serif;color:#eaffef}canvas{display:block;width:100%;height:100%;touch-action:pan-y}.overlay{position:fixed;inset:0;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 16px max(26px,env(safe-area-inset-bottom));text-align:center}.title{position:absolute;top:7%;font-size:clamp(27px,6vw,48px);letter-spacing:.13em;color:#e8ffe9;text-shadow:0 0 12px #69ff9b,0 0 32px #1eff78;font-weight:normal}.subtitle{font-size:clamp(12px,3vw,16px);letter-spacing:.28em;color:#b9eac8;text-shadow:0 0 12px #4cff86;margin-bottom:7px}.hint{font:11px Arial,sans-serif;color:#8eb69b;opacity:.8;letter-spacing:.08em;margin-top:9px}.glow{position:absolute;top:18%;width:min(75vw,520px);height:min(75vw,520px);border-radius:50%;background:#1bff7030;filter:blur(75px);pointer-events:none}
+</style></head><body>
+<canvas id="scene"></canvas><div class="glow"></div><div class="overlay"><div class="title">Merry Christmas</div><div class="subtitle">✦　SEASON OF MAGIC　✦</div><div class="hint">拖动屏幕旋转圣诞树 · DRAG TO ROTATE</div></div>
+<script>
+(()=>{
+const canvas=document.getElementById('scene'),ctx=canvas.getContext('2d');let W,H,DPR,angle=0,drag=false,lastX=0,spin=true;
+function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}addEventListener('resize',resize);resize();
+const rand=(a,b)=>a+Math.random()*(b-a),tree=[],ornaments=[],snow=[];
+// Layered, volumetric fir branches sampled around a tapered cone.
+for(let i=0;i<2600;i++){let y=rand(-1.65,1.55),u=(1.55-y)/3.2;if(u<0||u>1)continue;let radius=(.12+u*.94)*Math.sqrt(rand(.12,1));let a=rand(0,Math.PI*2);let r=radius*(.72+Math.sin(y*13+a*3)*.035);tree.push({x:Math.cos(a)*r,y,z:Math.sin(a)*r,c:rand(0,1),s:rand(1.1,3.1)})}
+for(let i=0;i<105;i++){let y=rand(-1.55,1.42),u=(1.55-y)/3.2,r=(.13+u*.91)*Math.sqrt(rand(.25,1)),a=rand(0,Math.PI*2);ornaments.push({x:Math.cos(a)*r,y,z:Math.sin(a)*r,color:['#ff4058','#ffd95c','#55dfff','#ff83d5','#f6fff5'][i%5],phase:rand(0,6.28),size:rand(2.3,4.5)})}
+for(let i=0;i<190;i++)snow.push({x:rand(-1,1),y:rand(-1,1),z:rand(-.8,1),v:rand(.0008,.0022),r:rand(.7,2.1),drift:rand(-.0005,.0005)});
+function project(p,rot,cx,cy,scale){let x=p.x*Math.cos(rot)-p.z*Math.sin(rot),z=p.x*Math.sin(rot)+p.z*Math.cos(rot);let depth=4.5+z;let k=scale/depth;return {x:cx+x*k,y:cy-p.y*k,z, k}}
+function drawStar(cx,cy,scale,t){let pulse=1+Math.sin(t*.003)*.1;ctx.save();ctx.translate(cx,cy);ctx.scale(pulse,pulse);ctx.shadowColor='#ffe88a';ctx.shadowBlur=28;ctx.fillStyle='#fff5b0';ctx.beginPath();for(let i=0;i<10;i++){let a=-Math.PI/2+i*Math.PI/5,r=i%2?scale*.32:scale;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.fill();ctx.restore()}
+function frame(t){ctx.clearRect(0,0,W,H);let cx=W/2,cy=H*.53,scale=Math.min(W*.78,H*.72);if(spin&&!drag)angle+=.003;
+// subtle ground glow
+let grd=ctx.createRadialGradient(cx,cy+scale*.35,2,cx,cy+scale*.35,scale*.62);grd.addColorStop(0,'#2bff7830');grd.addColorStop(1,'#0b301000');ctx.fillStyle=grd;ctx.beginPath();ctx.ellipse(cx,cy+scale*.36,scale*.55,scale*.11,0,0,Math.PI*2);ctx.fill();
+let pts=tree.map(p=>({...project(p,angle,cx,cy,scale),c:p.c,s:p.s})).sort((a,b)=>b.k-a.k);for(let p of pts){let light=.42+p.c*.48;ctx.fillStyle=`rgb(${Math.round(5+light*10)},${Math.round(75+light*105)},${Math.round(28+light*55)})`;ctx.globalAlpha=.7+p.c*.3;ctx.beginPath();ctx.ellipse(p.x,p.y,p.s*p.k*.72,p.s*p.k*1.3,0,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
+// trunk
+let trunkTop=project({x:0,y:-1.42,z:0},angle,cx,cy,scale),trunkBot=project({x:0,y:-1.92,z:0},angle,cx,cy,scale);ctx.fillStyle='#704321';ctx.fillRect(trunkTop.x-7,trunkTop.y,14,trunkBot.y-trunkTop.y);
+let bulbs=ornaments.map(o=>({...project(o,angle,cx,cy,scale),o})).sort((a,b)=>b.k-a.k);for(let p of bulbs){let blink=.55+.45*Math.sin(t*.004+p.o.phase);ctx.globalAlpha=.55+blink*.45;ctx.shadowColor=p.o.color;ctx.shadowBlur=7+blink*13;ctx.fillStyle=p.o.color;ctx.beginPath();ctx.arc(p.x,p.y,p.o.size*p.k*2.2,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;ctx.shadowBlur=0;
+let top=project({x:0,y:1.62,z:0},angle,cx,cy,scale);drawStar(top.x,top.y-7,Math.max(11,scale*.047),t);
+// snow drifting in front
+ctx.fillStyle='#eafff0';for(let s of snow){s.y-=s.v*H;s.x+=s.drift*W+Math.sin(t*.0007+s.z*9)*.12;if(s.y<-.05){s.y=1.05;s.x=rand(-.05,1.05)}let x=s.x*W,y=s.y*H;ctx.globalAlpha=.35+(s.z+1)*.25;ctx.beginPath();ctx.arc(x,y,s.r,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
+requestAnimationFrame(frame)}requestAnimationFrame(frame);
+canvas.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(drag){angle+=(e.clientX-lastX)*.009;lastX=e.clientX}});canvas.addEventListener('pointerup',()=>drag=false);canvas.addEventListener('pointercancel',()=>drag=false);
+})();
+</script></body></html>
